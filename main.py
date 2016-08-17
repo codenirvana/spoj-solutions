@@ -1,74 +1,107 @@
+import os
+import  getpass
 import requests
-from bs4 import BeautifulSoup
 import grequests
+from bs4 import BeautifulSoup
 
-
-USERNAME = ""
-PASSWORD = ""
+session = requests.session()
 
 BASE_URL = "http://www.spoj.com"
-LOGIN_URL = "/login/"
-URL = "/status/"+USERNAME+"/all/"
 
-def saveCode(results):
-    for result in results:
-        html = result.text
-        soup = BeautifulSoup(html, "html.parser")
+def basePath():
+    while 1:
+        path = input('Enter path to save files: ').strip()
 
-        problemcode = soup.find("input", {"name":"problemcode"})
-        languageId = soup.find('option', {'selected': True}).get('value')
+        if(path.startswith('~/')):
+            path = path.replace( '~', os.path.expanduser('~'), 1  )
 
-        textarea = '<textarea rows="20" cols="70" name="file" id="file" style="width: 100%;" data-input-file="1">'
-        for item in html.split("</textarea>"):
-            if textarea in item:
-                code = item[ item.find(textarea)+len(textarea) : ]
+        if not os.path.exists(path):
+            print('Path not exists: ' + path)
+            permission = input('Do you want to create this path? (Y/N) ')
+            if(permission.upper() == 'Y'):
+                os.makedirs(path)
+            else:
+                continue
 
-def main():
-    session = requests.session()
+        print('Valid Path: ' + path)
+        permission = input('Save files to this path? (Y/N) ')
+        if(permission.upper() == 'Y'):
+            break
+        else:
+            continue
+    return path + '/'
 
-    payload = {
-        "login_user": USERNAME,
-        "password": PASSWORD
-    }
-    print('Logging in...')
-    result = session.post(BASE_URL + LOGIN_URL, data = payload)
-    print('Success!')
+def createFiles(results, problemCode):
+    path = basePath()
+    print('Writing files...')
+    total = len(results)
+    for i in range( total ):
+        extension = results[i].headers['Content-Disposition'].split('-src')[1]
+        sourceFile = open(path + problemCode[i] + extension, "w")
+        sourceFile.write(results[i].text)
+        sourceFile.close()
 
-    result = session.get(BASE_URL + URL)
-    soup = BeautifulSoup(result.text, "html.parser")
-    user = soup.find('a', href="/users/uvasu").text.strip()
-    user = user[:len(user)-1]
-    print('Hello ' + user)
+    print( 'Total files saved: ' + str(total) )
 
-    solutions = dict()
+def process(soup):
+    problemCode = []
+    problemUrl = []
 
     while 1:
-        rows = soup.select('.kol1 .statusres .small')
-        rows_found = len( rows )
+        rows = soup.select('.kol1 .statustext a.sourcelink')
 
         for row in rows:
-            sol = row.find('a').get('href')
-            key = sol.split("/")[2]
-            if key in solutions:
+            code = row.get('data-pcode')
+            if(code in problemCode):
                 continue
-            solutions[key] = sol
+            problemCode.append(code)
+            url = row.get('data-url').split('/')
+            url.insert(3, 'save')
+            url = '/'.join( url )
+            problemUrl.append(url)
 
         nextPage = soup.select('.pagination li')[-2].find('a')
         if(nextPage):
-            print('Next Page...')
+            print('Searching submissions...')
             result = session.get(BASE_URL + nextPage.get('href'))
             soup = BeautifulSoup(result.text, "html.parser")
         else:
             break
 
-
-    print('Fetching urls...')
-    urls = list(solutions.values())
-    unsent_request = (grequests.get(BASE_URL + url, session=session) for url in urls)
+    print('Fetching source code...')
+    unsent_request = (grequests.get(BASE_URL + url, session=session) for url in problemUrl)
     results = grequests.map(unsent_request)
 
-    saveCode(results)
+    createFiles(results, problemCode)
 
+def main():
+    USERNAME = input('User Name: ')
+    PASSWORD = getpass.getpass('Password: ')
+    URL = "/status/" + USERNAME + "/all/"
+
+    print('Logging in...')
+
+    payload = {
+        "login_user": USERNAME,
+        "password": PASSWORD
+    }
+    result = session.post(BASE_URL + "/login/", data=payload)
+
+    result = session.get(BASE_URL + URL)
+
+    soup = BeautifulSoup(result.text, "html.parser")
+
+    logout_btn = soup.find("a", {"href": "/logout"})
+
+    if not logout_btn:
+        print('Failed!')
+        return
+
+    user = soup.find('a', href="/users/" + USERNAME).text.strip()[:-1]
+
+    print('Hello ' + user)
+
+    process(soup)
 
 if __name__ == '__main__':
     main()
