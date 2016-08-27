@@ -1,1 +1,3 @@
-Download your spoj solutions
+# spoj-solutions
+
+Download your SPOJ solutions
