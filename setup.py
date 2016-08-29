@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='spojsol',
-    version='0.0.1',
+    version='0.1',
     description='Download your spoj solutions',
     author='Udit Vasu',
     author_email='admin@codenirvana.in',
@@ -15,9 +15,8 @@ setup(
         'Requests==2.11.1'
     ],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
@@ -27,8 +26,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Topic :: Internet',
-        'Topic :: Software Development :: Libraries',
-        'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Utilities',
     ],
     keywords="spoj solutions command line tool",
