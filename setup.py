@@ -12,7 +12,7 @@ setup(
     install_requires=[
         'grequests==0.3.0',
         'beautifulsoup4==4.5.1',
-        'Requests==2.20.0'
+        'Requests==2.31.0'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
